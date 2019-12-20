@@ -1,0 +1,119 @@
+version: '3'
+services:
+
+  traefik:
+    image: traefik:1.7
+    command: --api --docker
+    ports:
+      - 80:80
+      - 443:443
+    expose:
+      - 8080
+    container_name: traefik
+    environment:
+      - DO_AUTH_TOKEN=${TRAEFIK_DO_AUTH_TOKEN}
+    labels:
+      - traefik.enable=true
+      - traefik.backend=traefik
+      - traefik.docker.network=proxy
+      - traefik.frontend.rule=Host:traefik.${ROOT_DOMAIN}
+      - traefik.port=8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik/traefik.toml:/traefik.toml
+      - ./traefik/acme.json:/acme.json
+    networks:
+      - proxy
+      - internal
+    restart: always
+
+  portainer:
+    image: portainer/portainer:1.20.1
+    command: --admin-password '${PORTAINER_ADMIN_PASSWORD}'
+    expose:
+      - 9000
+    labels:
+      - traefik.enable=true
+      - traefik.backend=portainer
+      - traefik.frontend.rule=Host:portainer.${ROOT_DOMAIN}
+      - traefik.docker.network=proxy
+      - traefik.port=9000
+    container_name: portainer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - proxy
+      - internal
+    restart: always
+
+  mysql:
+    image: mysql:5.7
+    ports: 
+      - 3306:3306
+    labels:
+      - traefik.enable=false
+    container_name: mysql
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - internal
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_HOST: "%"
+
+  redis:
+    image: redis:5.0.7
+    container_name: redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+    restart: always
+      
+  echo:
+    build: ./echo
+    image: idreamers/echo:1.0.0
+    expose:
+      - 6001
+    labels:
+      - traefik.enable=true
+      - traefik.backend=echo
+      - traefik.frontend.rule=Host:echo.${ROOT_DOMAIN}
+      - traefik.docker.network=proxy
+      - traefik.port=6001
+    container_name: echo
+    networks:
+      - proxy
+      - internal
+    restart: always
+
+  api:
+    image: idreamers/api:1.0.0
+    build: ./api
+    container_name: api
+    labels:
+      - traefik.enable=true
+      - traefik.backend=api
+      - traefik.docker.network=proxy
+      - traefik.frontend.rule=Host:api.${ROOT_DOMAIN}
+      - traefik.port=80
+    volumes:
+      /api/src:/var/www/html
+    networks:
+      - internal
+      - proxy
+
+volumes:
+  portainer_data:
+  mysql_data:
+  redis_data:
+
+networks:
+  proxy:
+    external: true
+  internal:
+    external: true
