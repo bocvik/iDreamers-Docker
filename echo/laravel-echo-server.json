@@ -5,7 +5,7 @@
 	"database": "redis",
 	"databaseConfig": {
 		"redis": {
-			"port": "80",
+			"port": "6379",
       "host": "redis"
 		},
 		"sqlite": {
