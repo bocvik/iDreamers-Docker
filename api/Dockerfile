@@ -10,10 +10,17 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
     mv $PHP_INI_DIR/php.ini-production $PHP_INI_DIR/php.ini && \
     apt-get update && \
     apt-get install -y \
+        zlib1g-dev \
+        libzip-dev \
         libpng-dev && \
     docker-php-ext-install \
         pdo_mysql \
+        exif \
+        zip \
         gd && \
     a2enmod rewrite
+
+# Copy composer into image
+COPY --from=composer:1.9.1 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /

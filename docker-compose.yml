@@ -104,7 +104,7 @@ services:
       - traefik.frontend.rule=Host:api.${ROOT_DOMAIN}
       - traefik.port=80
     volumes:
-      /api/src:/var/www/html
+      - /api/src:/var/www/html
     networks:
       - internal
       - proxy
